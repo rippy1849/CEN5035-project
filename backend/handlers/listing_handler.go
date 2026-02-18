@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"marketplace-backend/database"
 	"marketplace-backend/models"
+	"strconv"
+	"strings"
 )
 
 func CreateListing(w http.ResponseWriter, r *http.Request) {
@@ -47,5 +49,84 @@ func CreateListing(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(listing)
+}
+
+func GetListings(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	rows, err := database.DB.Query("SELECT id, user_id, title, description, price, category, created_at, updated_at FROM listings ORDER BY created_at DESC")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var listings []models.Listing
+	for rows.Next() {
+		var l models.Listing
+		if err := rows.Scan(&l.ID, &l.UserID, &l.Title, &l.Description, &l.Price, &l.Category, &l.CreatedAt, &l.UpdatedAt); err != nil {
+			continue
+		}
+		listings = append(listings, l)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(listings)
+}
+
+func UpdateListing(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	idStr := strings.TrimPrefix(r.URL.Path, "/listings/")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	var listing models.Listing
+	if err := json.NewDecoder(r.Body).Decode(&listing); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	stmt, err := database.DB.Prepare("UPDATE listings SET title=?, description=?, price=?, category=?, updated_at=CURRENT_TIMESTAMP WHERE id=?")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer stmt.Close()
+
+	res, err := stmt.Exec(listing.Title, listing.Description, listing.Price, listing.Category, id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	rowsAffected, _ := res.RowsAffected()
+	if rowsAffected == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Listing not found"})
+		return
+	}
+
+	// Update the listing object with ID and latest data to return it
+	listing.ID = id
+	// Re-fetch to get updated_at
+	err = database.DB.QueryRow("SELECT user_id, created_at, updated_at FROM listings WHERE id = ?", id).Scan(&listing.UserID, &listing.CreatedAt, &listing.UpdatedAt)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(listing)
 }
