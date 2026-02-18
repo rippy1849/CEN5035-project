@@ -1,0 +1,39 @@
+# Binaries and executables
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go workspace file
+go.work
+
+# Go build directories/files
+vendor/
+
+# Local configuration/credentials
+.env
+*.env
+
+# IDE specific
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Project specific files to ignore (heavy/binary files)
+go_dist/
+*.zip
+*.msi
+*.db
+*.log
+
+# Build output
+bin/
+dist/

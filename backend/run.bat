@@ -1,0 +1,3 @@
+@echo off
+echo Starting Marketplace Backend...
+..\go_dist\bin\go run main.go
