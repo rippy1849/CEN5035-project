@@ -2,26 +2,44 @@ import { useState, useEffect } from 'react';
 import Container from '@mui/material/Container';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import Alert from '@mui/material/Alert'; // Keep imports for user convenience
+import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import StorefrontIcon from '@mui/icons-material/Storefront';
-import { getListings, type Listing } from '../api/listings';
 import ListingCard from '../components/ListingCard';
+import ListingForm from '../components/ListingForm';
+import { getListings, createListing, type Listing } from '../api/listings';
 
 interface ListingsPageProps {
   onEdit: (listing: Listing) => void;
 }
 
 export default function ListingsPage({ onEdit }: ListingsPageProps) {
-  // TODO: Initialize state for listings, loading, and error
   const [listings, setListings] = useState<Listing[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  // TODO: Implement useEffect to fetch listings on mount
+  const fetchListings = async () => {
+    try {
+      setError(null);
+      const data = await getListings();
+      setListings(data || []);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load listings');
+    }
+  };
+
   useEffect(() => {
-    // Call getListings() export from ../api/listings
-    // Handle loading and error states
-    console.log("TODO: Fetch listings");
+    fetchListings();
   }, []);
+
+  const handleCreate = async (data: Omit<Listing, 'id'>) => {
+    try {
+      setError(null);
+      await createListing(data);
+      await fetchListings();
+    } catch (err: any) {
+      setError(err.message || 'Failed to create listing');
+    }
+  };
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
@@ -36,24 +54,29 @@ export default function ListingsPage({ onEdit }: ListingsPageProps) {
           </Typography>
         </Box>
 
-        {/* TODO: Display Alert if there is an error */}
+        {error && (
+          <Alert severity="error" onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
+
+        <ListingForm onSubmit={handleCreate} />
 
         <Typography variant="h6" sx={{ pt: 1 }}>
           Recent Listings
         </Typography>
 
-        {/* TODO: Check if listings array is empty. If so, show "No listings yet". */}
-
-        {/* TODO: Map over listings and render ListingCard for each */}
-        <Stack spacing={2}>
-          {/* Placeholder content until implemented */}
-          <Typography color="text.secondary" sx={{ fontStyle: 'italic' }}>
-            Listings will appear here...
+        {listings.length === 0 ? (
+          <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+            No listings yet. Be the first to post!
           </Typography>
-
-          {/* Example usage of ListingCard (remove when implementing loop) */}
-          {/* <ListingCard listing={exampleListing} onEdit={onEdit} /> */}
-        </Stack>
+        ) : (
+          <Stack spacing={2}>
+            {listings.map((listing) => (
+              <ListingCard key={listing.id} listing={listing} onEdit={onEdit} />
+            ))}
+          </Stack>
+        )}
       </Stack>
     </Container>
   );
