@@ -1,11 +1,11 @@
-# GatorBazaar
+# GatorMarketPlace
 CEN5035 : Software Engineering
-Project Name : GatorBazaar
+Project Name : GatorMarketPlace
 Professor Name : Alin Dobra
 Semester : Spring 2026
 
 
-**GatorBazaar** is a Gainesville-specific buying and selling platform built exclusively for students.
+**GatorMarketPlace** is a Gainesville-specific buying and selling platform built exclusively for students.
 
 The goal of the platform is to provide a safe, simple, and campus-focused marketplace where students can buy and sell items such as textbooks, electronics, furniture, bicycles, and other daily-use preowned goods. Unlike generic marketplaces, GatorBazaar is restricted to students, helping reduce scams and ensuring that transactions happen within the local student community.
 
