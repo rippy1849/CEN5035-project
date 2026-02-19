@@ -10,10 +10,11 @@ export default function Layout() {
                 display: 'flex',
                 flexDirection: 'column',
                 minHeight: '100vh',
+                backgroundColor: 'background.default',
             }}
         >
             <Header />
-            <Box component="main" sx={{ flexGrow: 1, py: 3 }}>
+            <Box component="main" sx={{ flexGrow: 1 }}>
                 <Outlet />
             </Box>
             <Footer />

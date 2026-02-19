@@ -103,3 +103,53 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* ─── Global UX improvements ─────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: 'Inter', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+  background-color: #F0F2F8;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F0F2F8;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 33, 165, 0.25);
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 33, 165, 0.45);
+}
+
+/* Selection color — Gator orange */
+::selection {
+  background-color: rgba(250, 70, 22, 0.18);
+  color: #0021A5;
+}
+
+/* Smooth image loading */
+img {
+  display: block;
+  max-width: 100%;
+}

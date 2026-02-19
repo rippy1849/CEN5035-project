@@ -1,9 +1,8 @@
 import Container from '@mui/material/Container';
-import Stack from '@mui/material/Stack';
+import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
-import IconButton from '@mui/material/IconButton';
-import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useState } from 'react';
 import ListingForm from '../components/ListingForm';
@@ -28,25 +27,48 @@ export default function EditListingPage({ listing, onBack }: EditListingPageProp
   };
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <Stack spacing={3}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <IconButton onClick={onBack}>
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h4" color="primary">
+    <Box>
+      {/* Page hero */}
+      <Box
+        sx={{
+          background: 'linear-gradient(150deg, #001480 0%, #0021A5 50%, #0A2EC4 100%)',
+          py: { xs: 5, md: 7 },
+          px: 2,
+        }}
+      >
+        <Container maxWidth="sm">
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={onBack}
+            sx={{
+              color: 'rgba(255,255,255,0.75)',
+              mb: 2,
+              fontWeight: 600,
+              '&:hover': { color: '#FFFFFF', backgroundColor: 'rgba(255,255,255,0.10)' },
+            }}
+          >
+            Back to listings
+          </Button>
+          <Typography
+            variant="h3"
+            sx={{ color: '#FFFFFF', fontWeight: 800, mb: 0.5, fontSize: { xs: '1.75rem', md: '2.5rem' } }}
+          >
             Edit Listing
           </Typography>
-        </Box>
+          <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.60)', fontWeight: 400, fontSize: '1rem' }}>
+            Updating: <Box component="span" sx={{ color: '#FA4616', fontWeight: 600 }}>{listing.title}</Box>
+          </Typography>
+        </Container>
+      </Box>
 
+      <Container maxWidth="sm" sx={{ py: { xs: 4, md: 6 } }}>
         {error && (
-          <Alert severity="error" onClose={() => setError(null)}>
+          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
             {error}
           </Alert>
         )}
-
         <ListingForm editListing={listing} onSubmit={handleUpdate} onCancel={onBack} />
-      </Stack>
-    </Container>
+      </Container>
+    </Box>
   );
 }
