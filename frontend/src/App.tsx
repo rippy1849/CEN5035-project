@@ -1,30 +1,24 @@
-import { useState } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme';
+import Layout from './components/layout/Layout';
 import ListingsPage from './pages/ListingsPage';
-import EditListingPage from './pages/EditListingPage';
-import type { Listing } from './api/listings';
+import SellPage from './pages/SellPage';
 
 function App() {
-  const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
-
-  if (selectedListing) {
-    return (
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <EditListingPage
-          listing={selectedListing}
-          onBack={() => setSelectedListing(null)}
-        />
-      </ThemeProvider>
-    );
-  }
-
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <ListingsPage onEdit={setSelectedListing} />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<ListingsPage />} />
+            <Route path="sell" element={<SellPage />} />
+            {/* Future routes can be added here */}
+          </Route>
+        </Routes>
+      </BrowserRouter>
     </ThemeProvider>
   );
 }
