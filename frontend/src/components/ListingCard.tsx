@@ -15,65 +15,110 @@ interface ListingCardProps {
 }
 
 export default function ListingCard({ listing, onEdit }: ListingCardProps) {
-  // Generate a consistent random image based on listing ID or title length
   const imageId = listing.id ? listing.id : listing.title.length;
   const imageUrl = `https://picsum.photos/seed/${imageId}/400/300`;
 
   return (
     <Card
-      elevation={2}
       sx={{
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'transform 0.2s',
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: 4,
-        }
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
+      {/* Price badge */}
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 12,
+          right: 12,
+          zIndex: 2,
+          background: 'linear-gradient(135deg, #FA4616, #C73000)',
+          color: '#FFFFFF',
+          fontWeight: 800,
+          fontSize: '0.95rem',
+          px: 1.5,
+          py: 0.5,
+          borderRadius: '8px',
+          boxShadow: '0 2px 10px rgba(250,70,22,0.45)',
+          letterSpacing: '-0.3px',
+        }}
+      >
+        ${listing.price.toLocaleString()}
+      </Box>
+
       <CardMedia
         component="img"
         height="200"
         image={imageUrl}
         alt={listing.title}
+        sx={{ objectFit: 'cover' }}
       />
-      <CardContent sx={{ flexGrow: 1 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-          <Typography gutterBottom variant="h6" component="h2" noWrap sx={{ maxWidth: '70%' }}>
-            {listing.title}
-          </Typography>
-          <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
-            ${listing.price}
-          </Typography>
-        </Box>
+
+      <CardContent sx={{ flexGrow: 1, px: 2.5, pt: 2.5, pb: 1 }}>
         <Chip
           label={listing.category}
           size="small"
-          color="secondary"
           variant="outlined"
-          sx={{ mb: 2 }}
+          sx={{
+            mb: 1.5,
+            fontSize: '0.7rem',
+            fontWeight: 600,
+            color: '#0021A5',
+            borderColor: 'rgba(0,33,165,0.30)',
+            backgroundColor: 'rgba(0,33,165,0.05)',
+          }}
         />
-        <Typography variant="body2" color="text.secondary" sx={{
-          display: '-webkit-box',
-          WebkitLineClamp: 3,
-          WebkitBoxOrient: 'vertical',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}>
+        <Typography
+          variant="h6"
+          component="h2"
+          sx={{
+            fontWeight: 700,
+            fontSize: '1rem',
+            lineHeight: 1.3,
+            mb: 1,
+            color: 'text.primary',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+        >
+          {listing.title}
+        </Typography>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            lineHeight: 1.6,
+          }}
+        >
           {listing.description}
         </Typography>
       </CardContent>
-      <CardActions sx={{ p: 2, pt: 0 }}>
+
+      <CardActions sx={{ px: 2.5, pb: 2.5, pt: 1 }}>
         <Button
           size="small"
-          startIcon={<EditIcon />}
+          startIcon={<EditIcon sx={{ fontSize: '0.95rem !important' }} />}
           onClick={() => onEdit(listing)}
           fullWidth
           variant="outlined"
+          color="primary"
+          sx={{
+            borderRadius: 2,
+            fontWeight: 600,
+            fontSize: '0.82rem',
+            py: 0.9,
+          }}
         >
-          Edit
+          Edit Listing
         </Button>
       </CardActions>
     </Card>
