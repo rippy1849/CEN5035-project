@@ -84,9 +84,9 @@ None. All Sprint 1 planned issues were completed within the sprint.
 
 ## Submission Links (to fill before turning in)
 
-- **GitHub Repository Link:** _Add link here_
-- **Frontend Team Demo Video:** _Add link/file here_
-- **Backend Team Demo Video:** _Add link/file here_
+- **GitHub Repository Link:** https://github.com/rippy1849/CEN5035-project
+- **Frontend Team Demo Video:** https://youtu.be/vvj-zMJHdeM
+- **Backend Team Demo Video:** https://youtu.be/FQsrsiiEoeo
 
 ---
 
