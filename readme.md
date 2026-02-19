@@ -15,6 +15,72 @@ GatorBazaar aims to make student-to-student commerce more reliable, convenient, 
 
 ---
 
+## 🚀 Getting Started
+
+Follow these instructions to get the project up and running on your local machine.
+
+### Prerequisites
+
+Ensure you have the following installed:
+- **Node.js** (for Frontend) - [Download Here](https://nodejs.org/)
+- **Go** (for Backend) - [Download Here](https://go.dev/dl/)
+
+---
+
+### 🛠️ Running the Project
+
+#### 1️⃣ Backend (Go)
+
+The backend runs on port `8080`.
+
+**Windows:**
+1. Navigate to the `backend` directory:
+   ```cmd
+   cd backend
+   ```
+2. Run the start script:
+   ```cmd
+   run.bat
+   ```
+
+**Mac / Linux:**
+1. Navigate to the `backend` directory:
+   ```bash
+   cd backend
+   ```
+2. Give execution permission to the script (first time only):
+   ```bash
+   chmod +x run.sh
+   ```
+3. Run the script:
+   ```bash
+   ./run.sh
+   ```
+
+Alternatively, you can run it directly with Go:
+```bash
+go run main.go
+```
+
+#### 2️⃣ Frontend (React + Vite)
+
+The frontend runs on `http://localhost:5173` (or the port shown in your terminal).
+
+1. Navigate to the `frontend` directory:
+   ```bash
+   cd frontend
+   ```
+2. Install dependencies (first time only):
+   ```bash
+   npm install
+   ```
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+---
+
 ## Team Members
 - Prathmesh Santosh Choudhari – Frontend Engineer
 - Varun Bohara – Frontend Engineer
