@@ -21,7 +21,13 @@ func CreateListing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get user_id from auth context (set by AuthMiddleware)
+	if uid := r.Context().Value(UserIDKey); uid != nil {
+		listing.UserID = uid.(int)
+	}
+
 	stmt, err := database.DB.Prepare("INSERT INTO listings(user_id, title, description, price, category) VALUES(?, ?, ?, ?, ?)")
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -129,4 +135,54 @@ func UpdateListing(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(listing)
+}
+
+func DeleteListing(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	idStr := strings.TrimPrefix(r.URL.Path, "/listings/")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	// Check ownership
+	userID := r.Context().Value(UserIDKey)
+	if userID != nil {
+		var ownerID int
+		err := database.DB.QueryRow("SELECT user_id FROM listings WHERE id = ?", id).Scan(&ownerID)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(map[string]string{"error": "Listing not found"})
+			return
+		}
+		if ownerID != userID.(int) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusForbidden)
+			json.NewEncoder(w).Encode(map[string]string{"error": "You can only delete your own listings"})
+			return
+		}
+	}
+
+	res, err := database.DB.Exec("DELETE FROM listings WHERE id = ?", id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	rowsAffected, _ := res.RowsAffected()
+	if rowsAffected == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Listing not found"})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Listing deleted"})
 }
