@@ -46,7 +46,7 @@ export default function ListingForm({ editListing, onSubmit, onCancel }: Listing
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ title, description, price: parseFloat(price), category, user_id: 1 });
+    onSubmit({ title, description, price: parseFloat(price), category, user_id: 0 });
     if (!editListing) {
       setTitle('');
       setDescription('');
