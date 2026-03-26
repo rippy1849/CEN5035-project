@@ -62,3 +62,4 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+*.postman_collection.json
