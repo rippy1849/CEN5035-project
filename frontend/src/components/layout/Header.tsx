@@ -4,15 +4,25 @@ import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
-import { Link as RouterLink, useLocation } from 'react-router-dom';
+import Avatar from '@mui/material/Avatar';
+import LogoutIcon from '@mui/icons-material/Logout';
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Header() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, isLoggedIn, logout } = useAuth();
 
   const navItems = [
     { label: 'Browse', to: '/' },
     { label: 'Sell', to: '/sell' },
   ];
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
 
   return (
     <AppBar position="sticky" elevation={0}>
@@ -116,22 +126,66 @@ export default function Header() {
               display: { xs: 'none', md: 'flex' },
             }}
           />
-          <Button
-            variant="outlined"
-            size="small"
-            sx={{
-              color: '#FFFFFF',
-              borderColor: 'rgba(255,255,255,0.45)',
-              fontWeight: 600,
-              px: 2,
-              '&:hover': {
-                borderColor: '#FFFFFF',
-                backgroundColor: 'rgba(255,255,255,0.10)',
-              },
-            }}
-          >
-            Sign In
-          </Button>
+
+          {isLoggedIn && user ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Avatar
+                src={user.picture}
+                alt={user.name}
+                sx={{ width: 32, height: 32, border: '2px solid rgba(255,255,255,0.3)' }}
+              />
+              <Typography
+                variant="body2"
+                sx={{
+                  color: 'rgba(255,255,255,0.85)',
+                  fontWeight: 600,
+                  fontSize: '0.8rem',
+                  display: { xs: 'none', sm: 'block' },
+                  maxWidth: 120,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {user.name}
+              </Typography>
+              <Button
+                size="small"
+                startIcon={<LogoutIcon sx={{ fontSize: '0.9rem !important' }} />}
+                onClick={handleLogout}
+                sx={{
+                  color: 'rgba(255,255,255,0.7)',
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  '&:hover': {
+                    color: '#FFFFFF',
+                    backgroundColor: 'rgba(255,255,255,0.10)',
+                  },
+                }}
+              >
+                Logout
+              </Button>
+            </Box>
+          ) : (
+            <Button
+              component={RouterLink}
+              to="/login"
+              variant="outlined"
+              size="small"
+              sx={{
+                color: '#FFFFFF',
+                borderColor: 'rgba(255,255,255,0.45)',
+                fontWeight: 600,
+                px: 2,
+                '&:hover': {
+                  borderColor: '#FFFFFF',
+                  backgroundColor: 'rgba(255,255,255,0.10)',
+                },
+              }}
+            >
+              Sign In
+            </Button>
+          )}
         </Box>
       </Toolbar>
     </AppBar>
