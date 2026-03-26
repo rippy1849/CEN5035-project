@@ -1,15 +1,22 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import Container from '@mui/material/Container';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
 import ListingForm from '../components/ListingForm';
 import { createListing, type Listing } from '../api/listings';
+import { useAuth } from '../context/AuthContext';
 
 export default function SellPage() {
     const navigate = useNavigate();
+    const { isLoggedIn, loading } = useAuth();
     const [error, setError] = useState<string | null>(null);
+
+    // Redirect to login if not authenticated
+    if (!loading && !isLoggedIn) {
+        return <Navigate to="/login" replace />;
+    }
 
     const handleCreate = async (data: Omit<Listing, 'id'>) => {
         try {

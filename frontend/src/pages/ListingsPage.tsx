@@ -9,7 +9,7 @@ import Chip from '@mui/material/Chip';
 import SearchIcon from '@mui/icons-material/Search';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import ListingCard from '../components/ListingCard';
-import { getListings, type Listing } from '../api/listings';
+import { getListings, deleteListing, type Listing } from '../api/listings';
 
 const CATEGORIES = ['All', 'Electronics', 'Furniture', 'Clothing', 'Books', 'Sports', 'Other'];
 
@@ -32,6 +32,15 @@ export default function ListingsPage({ onEdit }: ListingsPageProps) {
       setFilteredListings(data || []);
     } catch (err: any) {
       setError(err.message || 'Failed to load listings');
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteListing(id);
+      fetchListings();
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete listing');
     }
   };
 
@@ -232,6 +241,7 @@ export default function ListingsPage({ onEdit }: ListingsPageProps) {
                 key={listing.id}
                 listing={listing}
                 onEdit={onEdit || (() => {})}
+                onDelete={handleDelete}
               />
             ))}
           </Box>
