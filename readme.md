@@ -79,6 +79,56 @@ The frontend runs on `http://localhost:5173` (or the port shown in your terminal
    npm run dev
    ```
 
+## 🧪 Testing
+
+### Backend Tests (Go)
+
+```bash
+cd backend
+go test ./... -v
+```
+
+Or use the batch script (Windows):
+```cmd
+cd backend
+run_test.bat
+```
+
+### Frontend Unit Tests (Vitest)
+
+```bash
+cd frontend
+npm run test
+```
+
+### Frontend E2E Tests (Cypress)
+
+1. Install Cypress (first time only — already in devDependencies):
+   ```bash
+   cd frontend
+   npm install
+   ```
+
+2. Start the frontend dev server in one terminal:
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+
+3. Run Cypress in headless mode (separate terminal):
+   ```bash
+   cd frontend
+   npx cypress run
+   ```
+
+4. Or open Cypress interactively:
+   ```bash
+   cd frontend
+   npx cypress open
+   ```
+
+> **Note:** Cypress E2E tests require the frontend dev server to be running before execution.
+
 ---
 
 ## Team Members
