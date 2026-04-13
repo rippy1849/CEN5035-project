@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+const maxFileSize = 5 * 1024 * 1024 // 5MB
+
 var allowedImageTypes = map[string]bool{
 	"image/jpeg": true,
 	"image/png":  true,
@@ -20,7 +22,72 @@ var allowedImageTypes = map[string]bool{
 	"image/webp": true,
 }
 
-const maxFileSize = 5 * 1024 * 1024 // 5MB
+func DeleteListingImage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse path: /listings/{listingId}/images/{imageId}
+	pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(pathParts) < 4 {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+	listingID, err := strconv.Atoi(pathParts[1])
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+	imageID, err := strconv.Atoi(pathParts[3])
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	// Get user ID from context
+	userID := r.Context().Value(UserIDKey)
+	if userID == nil {
+		http.Error(w, "Authorization required", http.StatusUnauthorized)
+		return
+	}
+
+	// Check listing ownership
+	var ownerID int
+	err = database.DB.QueryRow("SELECT user_id FROM listings WHERE id = ?", listingID).Scan(&ownerID)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Listing not found"})
+		return
+	}
+	if ownerID != userID.(int) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]string{"error": "You can only delete images from your own listings"})
+		return
+	}
+
+	// Get image URL before deleting (to delete file from disk)
+	var imageURL string
+	err = database.DB.QueryRow("SELECT image_url FROM listing_images WHERE id = ? AND listing_id = ?", imageID, listingID).Scan(&imageURL)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Image not found"})
+		return
+	}
+
+	// Delete from database
+	database.DB.Exec("DELETE FROM listing_images WHERE id = ? AND listing_id = ?", imageID, listingID)
+
+	// Delete file from disk (best effort)
+	filePath := "." + imageURL
+	os.Remove(filePath)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Image deleted"})
+}
 
 func UploadListingImages(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
