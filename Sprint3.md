@@ -82,5 +82,5 @@ Deliver advanced marketplace features including:
 
 ## Submission Links
 - **GitHub Repository Link:** https://github.com/rippy1849/CEN5035-project
-- **Frontend Team Demo Video:** [TBD]
-- **Backend Team Demo Video:** [TBD]
+- **Frontend Team Demo Video:** [https://youtu.be/siS6Zs0q8gg](https://youtu.be/siS6Zs0q8gg)
+- **Backend Team Demo Video:** [https://youtu.be/ZcG-19pTwSE](https://youtu.be/ZcG-19pTwSE)
