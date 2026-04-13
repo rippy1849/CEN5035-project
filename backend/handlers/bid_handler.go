@@ -234,6 +234,108 @@ func GetBids(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func MarkFinalPrice(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse listing ID from path: /listings/{id}/final-price
+	pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(pathParts) < 3 {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+	listingID, err := strconv.Atoi(pathParts[1])
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	// Get user ID from context
+	userID := r.Context().Value(UserIDKey)
+	if userID == nil {
+		http.Error(w, "Authorization required", http.StatusUnauthorized)
+		return
+	}
+
+	// Verify listing exists and user is owner
+	var ownerID int
+	err = database.DB.QueryRow("SELECT user_id FROM listings WHERE id = ?", listingID).Scan(&ownerID)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Listing not found"})
+		return
+	}
+	if ownerID != userID.(int) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Only the listing owner can set final price"})
+		return
+	}
+
+	// Update the listing
+	database.DB.Exec("UPDATE listings SET is_final_price = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?", listingID)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message":        "Price marked as final",
+		"is_final_price": true,
+	})
+}
+
+func UnmarkFinalPrice(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse listing ID from path: /listings/{id}/unmark-final-price
+	pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(pathParts) < 3 {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+	listingID, err := strconv.Atoi(pathParts[1])
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	// Get user ID from context
+	userID := r.Context().Value(UserIDKey)
+	if userID == nil {
+		http.Error(w, "Authorization required", http.StatusUnauthorized)
+		return
+	}
+
+	// Verify listing exists and user is owner
+	var ownerID int
+	err = database.DB.QueryRow("SELECT user_id FROM listings WHERE id = ?", listingID).Scan(&ownerID)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Listing not found"})
+		return
+	}
+	if ownerID != userID.(int) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Only the listing owner can update final price"})
+		return
+	}
+
+	// Update the listing
+	database.DB.Exec("UPDATE listings SET is_final_price = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?", listingID)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message":        "Final price removed",
+		"is_final_price": false,
+	})
+}
+
 func RespondToBid(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -340,107 +442,5 @@ func RespondToBid(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"bid": bid,
-	})
-}
-
-func MarkFinalPrice(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Parse listing ID from path: /listings/{id}/final-price
-	pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-	if len(pathParts) < 3 {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
-		return
-	}
-	listingID, err := strconv.Atoi(pathParts[1])
-	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
-		return
-	}
-
-	// Get user ID from context
-	userID := r.Context().Value(UserIDKey)
-	if userID == nil {
-		http.Error(w, "Authorization required", http.StatusUnauthorized)
-		return
-	}
-
-	// Verify listing exists and user is owner
-	var ownerID int
-	err = database.DB.QueryRow("SELECT user_id FROM listings WHERE id = ?", listingID).Scan(&ownerID)
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Listing not found"})
-		return
-	}
-	if ownerID != userID.(int) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Only the listing owner can set final price"})
-		return
-	}
-
-	// Update the listing
-	database.DB.Exec("UPDATE listings SET is_final_price = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?", listingID)
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message":        "Price marked as final",
-		"is_final_price": true,
-	})
-}
-
-func UnmarkFinalPrice(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Parse listing ID from path: /listings/{id}/unmark-final-price
-	pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-	if len(pathParts) < 3 {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
-		return
-	}
-	listingID, err := strconv.Atoi(pathParts[1])
-	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
-		return
-	}
-
-	// Get user ID from context
-	userID := r.Context().Value(UserIDKey)
-	if userID == nil {
-		http.Error(w, "Authorization required", http.StatusUnauthorized)
-		return
-	}
-
-	// Verify listing exists and user is owner
-	var ownerID int
-	err = database.DB.QueryRow("SELECT user_id FROM listings WHERE id = ?", listingID).Scan(&ownerID)
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Listing not found"})
-		return
-	}
-	if ownerID != userID.(int) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Only the listing owner can update final price"})
-		return
-	}
-
-	// Update the listing
-	database.DB.Exec("UPDATE listings SET is_final_price = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?", listingID)
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message":        "Final price removed",
-		"is_final_price": false,
 	})
 }
