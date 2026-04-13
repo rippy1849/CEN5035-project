@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"marketplace-backend/database"
 	"marketplace-backend/handlers"
@@ -19,12 +20,18 @@ func main() {
 	database.InitDB()
 	log.Println("Database initialized")
 
+	// Ensure uploads directory exists
+	os.MkdirAll("./uploads", os.ModePerm)
+
 	mux := http.NewServeMux()
 
 	// --- Auth routes ---
 	mux.HandleFunc("/auth/google", handlers.GoogleLoginHandler)
 	mux.HandleFunc("/auth/me", handlers.AuthMiddleware(handlers.GetMeHandler))
 	mux.HandleFunc("/auth/logout", handlers.LogoutHandler)
+
+	// --- Static file server for uploaded images ---
+	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads/"))))
 
 	// --- Listing routes ---
 	mux.HandleFunc("/listings", func(w http.ResponseWriter, r *http.Request) {
@@ -39,11 +46,75 @@ func main() {
 	})
 
 	mux.HandleFunc("/listings/", func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/listings/")
+		parts := strings.Split(path, "/")
+
+		// /listings/{id}/images or /listings/{id}/images/{imageId}
+		if len(parts) >= 2 && parts[1] == "images" {
+			switch r.Method {
+			case http.MethodPost:
+				handlers.AuthMiddleware(handlers.UploadListingImages)(w, r)
+			case http.MethodDelete:
+				handlers.AuthMiddleware(handlers.DeleteListingImage)(w, r)
+			default:
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+			return
+		}
+
+		// /listings/{id}/bids
+		if len(parts) >= 2 && parts[1] == "bids" {
+			switch r.Method {
+			case http.MethodPost:
+				handlers.AuthMiddleware(handlers.PlaceBid)(w, r)
+			case http.MethodGet:
+				handlers.AuthMiddleware(handlers.GetBids)(w, r)
+			default:
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+			return
+		}
+
+		// /listings/{id}/final-price
+		if len(parts) >= 2 && parts[1] == "final-price" {
+			switch r.Method {
+			case http.MethodPut:
+				handlers.AuthMiddleware(handlers.MarkFinalPrice)(w, r)
+			default:
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+			return
+		}
+
+		// /listings/{id}/unmark-final-price
+		if len(parts) >= 2 && parts[1] == "unmark-final-price" {
+			switch r.Method {
+			case http.MethodPut:
+				handlers.AuthMiddleware(handlers.UnmarkFinalPrice)(w, r)
+			default:
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+			return
+		}
+
+		// /listings/{id} — existing CRUD
 		switch r.Method {
+		case http.MethodGet:
+			handlers.GetListing(w, r)
 		case http.MethodPut:
 			handlers.AuthMiddleware(handlers.UpdateListing)(w, r)
 		case http.MethodDelete:
 			handlers.AuthMiddleware(handlers.DeleteListing)(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
+	// --- Bid response routes ---
+	mux.HandleFunc("/bids/", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPut:
+			handlers.AuthMiddleware(handlers.RespondToBid)(w, r)
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
