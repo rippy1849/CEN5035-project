@@ -33,8 +33,8 @@ interface ListingCardProps {
 
 export default function ListingCard({ listing, onEdit, onViewDetails, onDelete }: ListingCardProps) {
   const { user } = useAuth();
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [bidDialogOpen, setBidDialogOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Build image list
@@ -46,15 +46,15 @@ export default function ListingCard({ listing, onEdit, onViewDetails, onDelete }
   const hasMultipleImages = imageList.length > 1;
   const isOwner = user && listing.user_id === user.id;
 
-  const handleDeleteClick = () => {
-    setConfirmOpen(true);
-  };
-
   const handleConfirmDelete = () => {
     setConfirmOpen(false);
     if (onDelete && listing.id) {
       onDelete(listing.id);
     }
+  };
+
+  const handleDeleteClick = () => {
+    setConfirmOpen(true);
   };
 
   return (
