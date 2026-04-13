@@ -9,6 +9,61 @@ import (
 	"strings"
 )
 
+// getImagesForListing fetches all image URLs for a given listing ID.
+func getImagesForListing(listingID int) []string {
+	rows, err := database.DB.Query("SELECT image_url FROM listing_images WHERE listing_id = ? ORDER BY display_order ASC, id ASC", listingID)
+	if err != nil {
+		return []string{}
+	}
+	defer rows.Close()
+
+	images := []string{}
+	for rows.Next() {
+		var url string
+		if err := rows.Scan(&url); err == nil {
+			images = append(images, url)
+		}
+	}
+	return images
+}
+
+// getImagesForListings fetches images for multiple listing IDs and returns a map.
+func getImagesForListings(listingIDs []int) map[int][]string {
+	result := make(map[int][]string)
+	if len(listingIDs) == 0 {
+		return result
+	}
+
+	// Initialize all IDs with empty slices
+	for _, id := range listingIDs {
+		result[id] = []string{}
+	}
+
+	// Build query with placeholders
+	placeholders := make([]string, len(listingIDs))
+	args := make([]interface{}, len(listingIDs))
+	for i, id := range listingIDs {
+		placeholders[i] = "?"
+		args[i] = id
+	}
+
+	query := "SELECT listing_id, image_url FROM listing_images WHERE listing_id IN (" + strings.Join(placeholders, ",") + ") ORDER BY display_order ASC, id ASC"
+	rows, err := database.DB.Query(query, args...)
+	if err != nil {
+		return result
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var listingID int
+		var url string
+		if err := rows.Scan(&listingID, &url); err == nil {
+			result[listingID] = append(result[listingID], url)
+		}
+	}
+	return result
+}
+
 func CreateListing(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -53,6 +108,9 @@ func CreateListing(w http.ResponseWriter, r *http.Request) {
 		// handle error
 	}
 
+	listing.Images = []string{}
+	listing.IsFinalPrice = false
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(listing)
@@ -64,7 +122,7 @@ func GetListings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := database.DB.Query("SELECT id, user_id, title, description, price, category, created_at, updated_at FROM listings ORDER BY created_at DESC")
+	rows, err := database.DB.Query("SELECT id, user_id, title, description, price, category, is_final_price, created_at, updated_at FROM listings ORDER BY created_at DESC")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -72,16 +130,67 @@ func GetListings(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	var listings []models.Listing
+	var listingIDs []int
 	for rows.Next() {
 		var l models.Listing
-		if err := rows.Scan(&l.ID, &l.UserID, &l.Title, &l.Description, &l.Price, &l.Category, &l.CreatedAt, &l.UpdatedAt); err != nil {
+		var isFinalPrice int
+		if err := rows.Scan(&l.ID, &l.UserID, &l.Title, &l.Description, &l.Price, &l.Category, &isFinalPrice, &l.CreatedAt, &l.UpdatedAt); err != nil {
 			continue
 		}
+		l.IsFinalPrice = isFinalPrice == 1
+		l.Images = []string{} // Initialize to empty
 		listings = append(listings, l)
+		listingIDs = append(listingIDs, l.ID)
+	}
+
+	// Fetch images for all listings in one query
+	if len(listingIDs) > 0 {
+		imagesMap := getImagesForListings(listingIDs)
+		for i := range listings {
+			if imgs, ok := imagesMap[listings[i].ID]; ok {
+				listings[i].Images = imgs
+			}
+		}
+	}
+
+	// Ensure we return an empty array, not null
+	if listings == nil {
+		listings = []models.Listing{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(listings)
+}
+
+func GetListing(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	idStr := strings.TrimPrefix(r.URL.Path, "/listings/")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	var listing models.Listing
+	var isFinalPrice int
+	err = database.DB.QueryRow("SELECT id, user_id, title, description, price, category, is_final_price, created_at, updated_at FROM listings WHERE id = ?", id).
+		Scan(&listing.ID, &listing.UserID, &listing.Title, &listing.Description, &listing.Price, &listing.Category, &isFinalPrice, &listing.CreatedAt, &listing.UpdatedAt)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Listing not found"})
+		return
+	}
+
+	listing.IsFinalPrice = isFinalPrice == 1
+	listing.Images = getImagesForListing(id)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(listing)
 }
 
 func UpdateListing(w http.ResponseWriter, r *http.Request) {
@@ -127,11 +236,14 @@ func UpdateListing(w http.ResponseWriter, r *http.Request) {
 	// Update the listing object with ID and latest data to return it
 	listing.ID = id
 	// Re-fetch to get updated_at
-	err = database.DB.QueryRow("SELECT user_id, created_at, updated_at FROM listings WHERE id = ?", id).Scan(&listing.UserID, &listing.CreatedAt, &listing.UpdatedAt)
+	var isFinalPrice int
+	err = database.DB.QueryRow("SELECT user_id, is_final_price, created_at, updated_at FROM listings WHERE id = ?", id).Scan(&listing.UserID, &isFinalPrice, &listing.CreatedAt, &listing.UpdatedAt)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	listing.IsFinalPrice = isFinalPrice == 1
+	listing.Images = getImagesForListing(id)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(listing)
@@ -182,6 +294,9 @@ func DeleteListing(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"error": "Listing not found"})
 		return
 	}
+
+	// Also clean up images from listing_images table
+	database.DB.Exec("DELETE FROM listing_images WHERE listing_id = ?", id)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"message": "Listing deleted"})
