@@ -7,6 +7,7 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -14,21 +15,35 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import GavelIcon from '@mui/icons-material/Gavel';
+import LockIcon from '@mui/icons-material/Lock';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import type { Listing } from '../api/listings';
 import { useAuth } from '../context/AuthContext';
+import BidDialog from './BidDialog';
 
 interface ListingCardProps {
   listing: Listing;
   onEdit: (listing: Listing) => void;
+  onViewDetails: (listing: Listing) => void;
   onDelete?: (id: number) => void;
 }
 
-export default function ListingCard({ listing, onEdit, onDelete }: ListingCardProps) {
+export default function ListingCard({ listing, onEdit, onViewDetails, onDelete }: ListingCardProps) {
   const { user } = useAuth();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const imageId = listing.id ? listing.id : listing.title.length;
-  const imageUrl = `https://picsum.photos/seed/${imageId}/400/300`;
+  const [bidDialogOpen, setBidDialogOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // Build image list
+  const imageId = listing.id ? listing.id : listing.title.length;
+  const imageList = listing.images && listing.images.length > 0
+    ? listing.images.map(img => `http://localhost:8080${img}`)
+    : [`https://picsum.photos/seed/${imageId}/400/300`];
+
+  const hasMultipleImages = imageList.length > 1;
   const isOwner = user && listing.user_id === user.id;
 
   const handleDeleteClick = () => {
@@ -74,13 +89,88 @@ export default function ListingCard({ listing, onEdit, onDelete }: ListingCardPr
           ${listing.price.toLocaleString()}
         </Box>
 
-        <CardMedia
-          component="img"
-          height="200"
-          image={imageUrl}
-          alt={listing.title}
-          sx={{ objectFit: 'cover' }}
-        />
+        {/* Final price badge */}
+        {listing.is_final_price && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 12,
+              left: 12,
+              zIndex: 2,
+            }}
+          >
+            <Chip
+              icon={<LockIcon sx={{ fontSize: '0.85rem !important', color: '#fff !important' }} />}
+              label="Price is Final"
+              size="small"
+              sx={{
+                backgroundColor: 'rgba(0,0,0,0.7)',
+                color: '#fff',
+                fontWeight: 600,
+                fontSize: '0.7rem',
+              }}
+            />
+          </Box>
+        )}
+
+        {/* Image section with carousel */}
+        <Box sx={{ position: 'relative', height: 200, overflow: 'hidden' }}>
+          <CardMedia
+            component="img"
+            height="200"
+            image={imageList[currentImageIndex]}
+            alt={hasMultipleImages ? `${listing.title} - image ${currentImageIndex + 1}` : listing.title}
+            sx={{ objectFit: 'cover', height: '100%', width: '100%' }}
+          />
+
+          {/* Prev / Next arrows — only if multiple images */}
+          {hasMultipleImages && (
+            <>
+              <IconButton
+                size="small"
+                onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(i => (i - 1 + imageList.length) % imageList.length); }}
+                sx={{
+                  position: 'absolute', left: 6, top: '50%', transform: 'translateY(-50%)',
+                  backgroundColor: 'rgba(0,0,0,0.45)', color: '#fff',
+                  '&:hover': { backgroundColor: 'rgba(0,0,0,0.7)' },
+                  p: 0.5,
+                }}
+              >
+                <NavigateBeforeIcon fontSize="small" />
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(i => (i + 1) % imageList.length); }}
+                sx={{
+                  position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+                  backgroundColor: 'rgba(0,0,0,0.45)', color: '#fff',
+                  '&:hover': { backgroundColor: 'rgba(0,0,0,0.7)' },
+                  p: 0.5,
+                }}
+              >
+                <NavigateNextIcon fontSize="small" />
+              </IconButton>
+
+              {/* Dot indicators */}
+              <Box sx={{ position: 'absolute', bottom: 8, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 0.75 }}>
+                {imageList.map((_, idx) => (
+                  <Box
+                    key={idx}
+                    onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(idx); }}
+                    sx={{
+                      width: idx === currentImageIndex ? 18 : 7,
+                      height: 7,
+                      borderRadius: 4,
+                      backgroundColor: idx === currentImageIndex ? '#FFFFFF' : 'rgba(255,255,255,0.45)',
+                      cursor: 'pointer',
+                      transition: 'all 0.25s ease',
+                    }}
+                  />
+                ))}
+              </Box>
+            </>
+          )}
+        </Box>
 
         <CardContent sx={{ flexGrow: 1, px: 2.5, pt: 2.5, pb: 1 }}>
           <Chip
@@ -166,22 +256,43 @@ export default function ListingCard({ listing, onEdit, onDelete }: ListingCardPr
             </>
           )}
           {!isOwner && (
-            <Button
-              size="small"
-              startIcon={<EditIcon sx={{ fontSize: '0.95rem !important' }} />}
-              onClick={() => onEdit(listing)}
-              fullWidth
-              variant="outlined"
-              color="primary"
-              sx={{
-                borderRadius: 2,
-                fontWeight: 600,
-                fontSize: '0.82rem',
-                py: 0.9,
-              }}
-            >
-              View Details
-            </Button>
+            <>
+              <Button
+                size="small"
+                startIcon={<InfoOutlinedIcon sx={{ fontSize: '0.95rem !important' }} />}
+                onClick={() => onViewDetails(listing)}
+                variant="outlined"
+                color="primary"
+                sx={{
+                  borderRadius: 2,
+                  fontWeight: 600,
+                  fontSize: '0.82rem',
+                  py: 0.9,
+                  flex: 1,
+                }}
+              >
+                View Details
+              </Button>
+              {user && (
+                <Button
+                  size="small"
+                  startIcon={<GavelIcon sx={{ fontSize: '0.95rem !important' }} />}
+                  onClick={() => setBidDialogOpen(true)}
+                  variant="contained"
+                  sx={{
+                    borderRadius: 2,
+                    fontWeight: 600,
+                    fontSize: '0.82rem',
+                    py: 0.9,
+                    flex: 1,
+                    backgroundColor: '#0021A5',
+                    '&:hover': { backgroundColor: '#001480' },
+                  }}
+                >
+                  Place Bid
+                </Button>
+              )}
+            </>
           )}
         </CardActions>
       </Card>
@@ -201,6 +312,13 @@ export default function ListingCard({ listing, onEdit, onDelete }: ListingCardPr
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Bid dialog */}
+      <BidDialog
+        open={bidDialogOpen}
+        onClose={() => setBidDialogOpen(false)}
+        listing={listing}
+      />
     </>
   );
 }

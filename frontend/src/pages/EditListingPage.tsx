@@ -6,7 +6,9 @@ import Button from '@mui/material/Button';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useState } from 'react';
 import ListingForm from '../components/ListingForm';
-import { updateListing, type Listing } from '../api/listings';
+import BidManagementPanel from '../components/BidManagementPanel';
+import { updateListing, uploadListingImages, type Listing } from '../api/listings';
+import { useAuth } from '../context/AuthContext';
 
 interface EditListingPageProps {
   listing: Listing;
@@ -15,11 +17,23 @@ interface EditListingPageProps {
 
 export default function EditListingPage({ listing, onBack }: EditListingPageProps) {
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const isOwner = user && listing.user_id === user.id;
 
-  const handleUpdate = async (data: Omit<Listing, 'id'>) => {
+  const handleUpdate = async (data: Omit<Listing, 'id'>, files?: File[]) => {
     try {
       setError(null);
       await updateListing(listing.id!, data);
+
+      // Upload new images if any
+      if (files && files.length > 0 && listing.id) {
+        try {
+          await uploadListingImages(listing.id, files);
+        } catch (imgErr: any) {
+          console.error('Image upload failed:', imgErr);
+        }
+      }
+
       onBack();
     } catch (err: any) {
       setError(err.message || 'Failed to update listing');
@@ -68,6 +82,11 @@ export default function EditListingPage({ listing, onBack }: EditListingPageProp
           </Alert>
         )}
         <ListingForm editListing={listing} onSubmit={handleUpdate} onCancel={onBack} />
+
+        {/* Show bid management panel for listing owners */}
+        {isOwner && listing.id && (
+          <BidManagementPanel listingId={listing.id} isFinalPrice={listing.is_final_price} onUpdate={onBack} />
+        )}
       </Container>
     </Box>
   );

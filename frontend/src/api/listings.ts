@@ -9,11 +9,19 @@ export interface Listing {
   price: number;
   category: string;
   user_id: number;
+  images?: string[];
+  is_final_price?: boolean;
 }
 
 export async function getListings(): Promise<Listing[]> {
   const res = await fetch(`${BASE_URL}/listings`);
   if (!res.ok) throw new Error(`Failed to fetch listings: ${res.statusText}`);
+  return res.json();
+}
+
+export async function getListing(id: number): Promise<Listing> {
+  const res = await fetch(`${BASE_URL}/listings/${id}`);
+  if (!res.ok) throw new Error(`Failed to fetch listing: ${res.statusText}`);
   return res.json();
 }
 
@@ -46,4 +54,26 @@ export async function deleteListing(id: number): Promise<void> {
     throw new Error('You can only delete your own listings');
   }
   if (!res.ok) throw new Error(`Failed to delete listing: ${res.statusText}`);
+}
+
+export async function uploadListingImages(listingId: number, files: File[]): Promise<string[]> {
+  const formData = new FormData();
+  files.forEach(file => formData.append('images', file));
+
+  const res = await fetch(`${BASE_URL}/listings/${listingId}/images`, {
+    method: 'POST',
+    headers: { ...getAuthHeaders() },
+    body: formData,
+  });
+  if (!res.ok) throw new Error(`Failed to upload images: ${res.statusText}`);
+  const data = await res.json();
+  return data.images;
+}
+
+export async function deleteListingImage(listingId: number, imageId: number): Promise<void> {
+  const res = await fetch(`${BASE_URL}/listings/${listingId}/images/${imageId}`, {
+    method: 'DELETE',
+    headers: { ...getAuthHeaders() },
+  });
+  if (!res.ok) throw new Error(`Failed to delete image: ${res.statusText}`);
 }

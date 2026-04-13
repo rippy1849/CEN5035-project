@@ -9,6 +9,7 @@ import Chip from '@mui/material/Chip';
 import SearchIcon from '@mui/icons-material/Search';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import ListingCard from '../components/ListingCard';
+import ListingDetailModal from '../components/ListingDetailModal';
 import { getListings, deleteListing, type Listing } from '../api/listings';
 
 const CATEGORIES = ['All', 'Electronics', 'Furniture', 'Clothing', 'Books', 'Sports', 'Other'];
@@ -23,6 +24,7 @@ export default function ListingsPage({ onEdit }: ListingsPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
+  const [viewListing, setViewListing] = useState<Listing | null>(null);
 
   const fetchListings = async () => {
     try {
@@ -241,12 +243,20 @@ export default function ListingsPage({ onEdit }: ListingsPageProps) {
                 key={listing.id}
                 listing={listing}
                 onEdit={onEdit || (() => {})}
+                onViewDetails={(l) => setViewListing(l)}
                 onDelete={handleDelete}
               />
             ))}
           </Box>
         )}
       </Container>
+
+      {/* Read-only detail modal for non-owners */}
+      <ListingDetailModal
+        open={!!viewListing}
+        listing={viewListing}
+        onClose={() => setViewListing(null)}
+      />
     </Box>
   );
 }
