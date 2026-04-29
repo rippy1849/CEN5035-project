@@ -9,6 +9,7 @@ type Listing struct {
 	Category     string   `json:"category"`
 	Images       []string `json:"images"`
 	IsFinalPrice bool     `json:"is_final_price"`
+	Status       string   `json:"status"`
 	CreatedAt    string   `json:"created_at"`
 	UpdatedAt    string   `json:"updated_at"`
 }

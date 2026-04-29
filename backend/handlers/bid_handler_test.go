@@ -667,3 +667,60 @@ func TestMarkThenUnmark_AllowsBids(t *testing.T) {
 
 // Verify unused import
 var _ = models.Bid{}
+
+func TestGetMyBids(t *testing.T) {
+	setupBidTest()
+	_, buyerID, _ := createBidTestData(t)
+
+	database.DB.Exec("INSERT INTO bids (listing_id, buyer_id, amount, status, bid_number) VALUES (1, ?, 80, 'pending', 1)", buyerID)
+
+	req := bidRequest(http.MethodGet, "/my/bids", "", buyerID)
+	rr := httptest.NewRecorder()
+
+	GetMyBids(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("Expected 200, got %d", rr.Code)
+	}
+
+	var bids []map[string]interface{}
+	json.Unmarshal(rr.Body.Bytes(), &bids)
+
+	if len(bids) != 1 {
+		t.Fatalf("Expected 1 bid, got %d", len(bids))
+	}
+
+	if bids[0]["listing_title"] == nil {
+		t.Error("Expected listing_title in bid")
+	}
+}
+
+func TestAcceptCounter(t *testing.T) {
+	setupBidTest()
+	_, buyerID, _ := createBidTestData(t)
+
+	// Create a countered bid
+	database.DB.Exec("INSERT INTO bids (listing_id, buyer_id, amount, status, counter_amount, bid_number) VALUES (1, ?, 80, 'countered', 90, 1)", buyerID)
+
+	req := bidRequest(http.MethodPut, "/bids/1/accept-counter", "", buyerID)
+	rr := httptest.NewRecorder()
+
+	AcceptCounter(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("Expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var bidStatus string
+	database.DB.QueryRow("SELECT status FROM bids WHERE id = 1").Scan(&bidStatus)
+	if bidStatus != "accepted" {
+		t.Errorf("Expected bid status 'accepted', got '%s'", bidStatus)
+	}
+
+	// Verify order created
+	var count int
+	database.DB.QueryRow("SELECT COUNT(*) FROM orders WHERE bid_id = 1").Scan(&count)
+	if count != 1 {
+		t.Error("Expected an order to be created")
+	}
+}

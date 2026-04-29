@@ -276,3 +276,37 @@ func TestDeleteListing_InvalidID(t *testing.T) {
 		t.Fatalf("Expected 400 for invalid ID, got %d", rr.Code)
 	}
 }
+
+func TestGetMyListings(t *testing.T) {
+	setupListingTest()
+	userID, _ := createTestUser(t)
+
+	// Create a listing for this user
+	database.DB.Exec("INSERT INTO listings (user_id, title, description, price, category, status) VALUES (?, 'My Item', 'desc', 100, 'Books', 'active')", userID)
+	database.DB.Exec("INSERT INTO listings (user_id, title, description, price, category, status) VALUES (?, 'My Sold Item', 'desc', 100, 'Books', 'sold')", userID)
+	
+	// Create listing for someone else
+	database.DB.Exec("INSERT INTO listings (user_id, title, description, price, category, status) VALUES (?, 'Not Mine', 'desc', 100, 'Books', 'active')", 999)
+
+	req := authenticatedRequest(http.MethodGet, "/my/listings", "", userID)
+	rr := httptest.NewRecorder()
+
+	GetMyListings(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("Expected 200, got %d", rr.Code)
+	}
+
+	var listings []map[string]interface{}
+	json.Unmarshal(rr.Body.Bytes(), &listings)
+
+	if len(listings) != 2 {
+		t.Fatalf("Expected 2 listings, got %d", len(listings))
+	}
+	
+	for _, l := range listings {
+		if l["status"] == nil {
+			t.Error("Expected status field in listing")
+		}
+	}
+}
