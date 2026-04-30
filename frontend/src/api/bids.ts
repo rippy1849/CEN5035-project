@@ -15,6 +15,12 @@ export interface Bid {
   updated_at: string;
 }
 
+export interface BidWithListing extends Bid {
+  listing_title: string;
+  listing_price: number;
+  listing_image: string;
+}
+
 export interface PlaceBidResponse {
   bid: Bid;
   bids_remaining: number;
