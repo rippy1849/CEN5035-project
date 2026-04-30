@@ -74,6 +74,26 @@ export async function respondToBid(
   return res.json();
 }
 
+export async function acceptCounter(bidId: number): Promise<{ bid: Bid; order_id: number }> {
+  const res = await fetch(`${BASE_URL}/bids/${bidId}/accept-counter`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `Failed to accept counter: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+export async function getMyBids(): Promise<BidWithListing[]> {
+  const res = await fetch(`${BASE_URL}/my/bids`, {
+    headers: { ...getAuthHeaders() },
+  });
+  if (!res.ok) throw new Error(`Failed to fetch my bids: ${res.statusText}`);
+  return res.json();
+}
+
 export async function markFinalPrice(listingId: number): Promise<void> {
   const res = await fetch(`${BASE_URL}/listings/${listingId}/final-price`, {
     method: 'PUT',
