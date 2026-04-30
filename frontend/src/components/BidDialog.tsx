@@ -13,7 +13,8 @@ import InputAdornment from '@mui/material/InputAdornment';
 import Divider from '@mui/material/Divider';
 import CircularProgress from '@mui/material/CircularProgress';
 import GavelIcon from '@mui/icons-material/Gavel';
-import { placeBid, getBids, type Bid } from '../api/bids';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { placeBid, getBids, acceptCounter, type Bid } from '../api/bids';
 import type { Listing } from '../api/listings';
 
 interface BidDialogProps {
@@ -70,6 +71,24 @@ export default function BidDialog({ open, onClose, listing, onBidPlaced }: BidDi
   const lastBid = bids.length > 0 ? bids[bids.length - 1] : null;
   const hasAcceptedBid = bids.some(b => b.status === 'accepted');
   const isDisabled = bidsRemaining <= 0 || listing.is_final_price || hasAcceptedBid;
+  const hasCounter = lastBid?.status === 'countered' && lastBid.counter_amount;
+
+  const handleAcceptCounter = async () => {
+    if (!lastBid) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await acceptCounter(lastBid.id);
+      setSuccess(`Counter accepted! Order #${result.order_id} created. Redirecting to payment...`);
+      fetchBids();
+      onBidPlaced?.();
+      // Could navigate to order page here
+    } catch (err: any) {
+      setError(err.message || 'Failed to accept counter');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -118,10 +137,27 @@ export default function BidDialog({ open, onClose, listing, onBidPlaced }: BidDi
           <Alert severity="warning" sx={{ mb: 2 }}>The seller has marked this price as final. No more bids accepted.</Alert>
         )}
 
-        {/* Last counter offer */}
-        {lastBid?.status === 'countered' && lastBid.counter_amount && (
+        {/* Last counter offer with accept button */}
+        {hasCounter && (
           <Alert severity="info" sx={{ mb: 2 }}>
-            Seller counter-offered: <strong>${lastBid.counter_amount.toFixed(2)}</strong>
+            Seller counter-offered: <strong>${lastBid!.counter_amount!.toFixed(2)}</strong>
+            <Box sx={{ mt: 1 }}>
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={<CheckCircleIcon />}
+                onClick={handleAcceptCounter}
+                disabled={loading}
+                sx={{ backgroundColor: '#2e7d32', fontWeight: 600, fontSize: '0.75rem', mr: 1, '&:hover': { backgroundColor: '#1b5e20' } }}
+              >
+                Accept ${lastBid!.counter_amount!.toFixed(2)}
+              </Button>
+              {bidsRemaining > 0 && (
+                <Typography variant="caption" color="text.secondary">
+                  or place a new bid below
+                </Typography>
+              )}
+            </Box>
           </Alert>
         )}
 
