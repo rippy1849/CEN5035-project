@@ -273,7 +273,7 @@ export default function ListingCard({ listing, onEdit, onViewDetails, onDelete }
               >
                 View Details
               </Button>
-              {user && (
+              {user && !listing.is_final_price && listing.status !== 'sold' && (
                 <Button
                   size="small"
                   startIcon={<GavelIcon sx={{ fontSize: '0.95rem !important' }} />}

@@ -15,8 +15,10 @@ export default function Header() {
   const { user, isLoggedIn, logout } = useAuth();
 
   const navItems = [
-    { label: 'Browse', to: '/' },
-    { label: 'Sell', to: '/sell' },
+    { label: 'Browse', to: '/', auth: false },
+    { label: 'Sell', to: '/sell', auth: false },
+    { label: 'My Purchases', to: '/my/purchases', auth: true },
+    { label: 'My Listings', to: '/my/listings', auth: true },
   ];
 
   const handleLogout = async () => {
@@ -74,7 +76,9 @@ export default function Header() {
 
         {/* Nav links */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexGrow: 1 }}>
-          {navItems.map((item) => {
+          {navItems
+            .filter((item) => !item.auth || isLoggedIn)
+            .map((item) => {
             const active = location.pathname === item.to;
             return (
               <Button

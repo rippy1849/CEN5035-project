@@ -11,6 +11,11 @@ export interface Listing {
   user_id: number;
   images?: string[];
   is_final_price?: boolean;
+  status?: string; // 'active' | 'sold'
+}
+
+export interface ListingWithBidCount extends Listing {
+  bid_count: number;
 }
 
 export async function getListings(): Promise<Listing[]> {
@@ -22,6 +27,14 @@ export async function getListings(): Promise<Listing[]> {
 export async function getListing(id: number): Promise<Listing> {
   const res = await fetch(`${BASE_URL}/listings/${id}`);
   if (!res.ok) throw new Error(`Failed to fetch listing: ${res.statusText}`);
+  return res.json();
+}
+
+export async function getMyListings(): Promise<ListingWithBidCount[]> {
+  const res = await fetch(`${BASE_URL}/my/listings`, {
+    headers: { ...getAuthHeaders() },
+  });
+  if (!res.ok) throw new Error(`Failed to fetch my listings: ${res.statusText}`);
   return res.json();
 }
 

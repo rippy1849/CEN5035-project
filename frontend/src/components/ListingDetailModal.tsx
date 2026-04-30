@@ -186,7 +186,7 @@ export default function ListingDetailModal({ listing, open, onClose }: ListingDe
           <Button onClick={onClose} variant="outlined" sx={{ fontWeight: 600 }}>
             Close
           </Button>
-          {user && !isOwner && (
+          {user && !isOwner && !listing.is_final_price && listing.status !== 'sold' && (
             <Button
               variant="contained"
               startIcon={<GavelIcon />}
