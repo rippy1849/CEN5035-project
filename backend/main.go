@@ -33,6 +33,10 @@ func main() {
 	// --- Static file server for uploaded images ---
 	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads/"))))
 
+	// --- Dashboard routes ---
+	mux.HandleFunc("/my/bids", handlers.AuthMiddleware(handlers.GetMyBids))
+	mux.HandleFunc("/my/listings", handlers.AuthMiddleware(handlers.GetMyListings))
+
 	// --- Listing routes ---
 	mux.HandleFunc("/listings", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -112,9 +116,57 @@ func main() {
 
 	// --- Bid response routes ---
 	mux.HandleFunc("/bids/", func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/bids/")
+		parts := strings.Split(path, "/")
+
+		if len(parts) >= 2 && parts[1] == "accept-counter" {
+			handlers.AuthMiddleware(handlers.AcceptCounter)(w, r)
+			return
+		}
+
+		if len(parts) >= 2 && parts[1] == "respond" {
+			switch r.Method {
+			case http.MethodPut:
+				handlers.AuthMiddleware(handlers.RespondToBid)(w, r)
+			default:
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+			return
+		}
+
+		http.Error(w, "Not found", http.StatusNotFound)
+	})
+
+	// --- Order routes ---
+	mux.HandleFunc("/orders", handlers.AuthMiddleware(handlers.GetMyOrders))
+	mux.HandleFunc("/orders/", func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/orders/")
+		parts := strings.Split(path, "/")
+
+		if len(parts) >= 2 {
+			switch parts[1] {
+			case "pay":
+				handlers.AuthMiddleware(handlers.CreatePaymentSession)(w, r)
+				return
+			case "payment-success":
+				handlers.AuthMiddleware(handlers.PaymentSuccess)(w, r)
+				return
+			case "confirm-seller":
+				handlers.AuthMiddleware(handlers.ConfirmSeller)(w, r)
+				return
+			case "confirm-buyer":
+				handlers.AuthMiddleware(handlers.ConfirmBuyer)(w, r)
+				return
+			case "invoice":
+				handlers.AuthMiddleware(handlers.GetInvoice)(w, r)
+				return
+			}
+		}
+
+		// /orders/{id}
 		switch r.Method {
-		case http.MethodPut:
-			handlers.AuthMiddleware(handlers.RespondToBid)(w, r)
+		case http.MethodGet:
+			handlers.AuthMiddleware(handlers.GetOrder)(w, r)
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
