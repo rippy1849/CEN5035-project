@@ -128,3 +128,101 @@ func TestGetOrder(t *testing.T) {
 		t.Fatalf("Expected 403, got %d", rrUnauth.Code)
 	}
 }
+
+func TestCreatePaymentSession(t *testing.T) {
+	setupOrderTest()
+	_, buyerID, _, _, _ := createOrderTestData(t)
+
+	req := orderRequest(http.MethodPost, "/orders/1/pay", buyerID)
+	rr := httptest.NewRecorder()
+	CreatePaymentSession(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("Expected 200, got %d: %s", rr.Code, rr.Body.String())
+	}
+
+	var resp map[string]interface{}
+	json.Unmarshal(rr.Body.Bytes(), &resp)
+	if resp["mode"] == nil {
+		t.Error("Expected payment mode in response")
+	}
+}
+
+func TestPaymentSuccess(t *testing.T) {
+	setupOrderTest()
+	_, buyerID, _, _, _ := createOrderTestData(t)
+
+	// In simulated mode, it's immediately paid. But let's test the endpoint anyway.
+	database.DB.Exec("UPDATE orders SET status = 'payment_pending' WHERE id = 1")
+	req := orderRequest(http.MethodGet, "/orders/1/payment-success", buyerID)
+	rr := httptest.NewRecorder()
+	PaymentSuccess(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("Expected 200, got %d", rr.Code)
+	}
+
+	var status string
+	database.DB.QueryRow("SELECT status FROM orders WHERE id = 1").Scan(&status)
+	if status != "paid" {
+		t.Errorf("Expected status 'paid', got '%s'", status)
+	}
+}
+
+func TestConfirmHandovers(t *testing.T) {
+	setupOrderTest()
+	sellerID, buyerID, _, _, _ := createOrderTestData(t)
+
+	// Need to be 'paid' first
+	database.DB.Exec("UPDATE orders SET status = 'paid' WHERE id = 1")
+
+	// Seller confirm
+	reqSeller := orderRequest(http.MethodPut, "/orders/1/confirm-seller", sellerID)
+	rrSeller := httptest.NewRecorder()
+	ConfirmSeller(rrSeller, reqSeller)
+	if rrSeller.Code != http.StatusOK {
+		t.Fatalf("Expected 200 on seller confirm, got %d", rrSeller.Code)
+	}
+
+	var status string
+	database.DB.QueryRow("SELECT status FROM orders WHERE id = 1").Scan(&status)
+	if status == "completed" {
+		t.Error("Order should not be completed until buyer confirms")
+	}
+
+	// Buyer confirm
+	reqBuyer := orderRequest(http.MethodPut, "/orders/1/confirm-buyer", buyerID)
+	rrBuyer := httptest.NewRecorder()
+	ConfirmBuyer(rrBuyer, reqBuyer)
+	if rrBuyer.Code != http.StatusOK {
+		t.Fatalf("Expected 200 on buyer confirm, got %d", rrBuyer.Code)
+	}
+
+	database.DB.QueryRow("SELECT status FROM orders WHERE id = 1").Scan(&status)
+	if status != "completed" {
+		t.Errorf("Expected order to be completed, got '%s'", status)
+	}
+}
+
+func TestGetInvoice(t *testing.T) {
+	setupOrderTest()
+	sellerID, _, _, _, _ := createOrderTestData(t)
+
+	req := orderRequest(http.MethodGet, "/orders/1/invoice", sellerID)
+	rr := httptest.NewRecorder()
+	GetInvoice(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("Expected 200, got %d", rr.Code)
+	}
+
+	var resp map[string]interface{}
+	json.Unmarshal(rr.Body.Bytes(), &resp)
+
+	if resp["order_id"].(float64) != 1 {
+		t.Errorf("Expected order ID 1 in invoice, got %v", resp["order_id"])
+	}
+	if resp["platform_fee_percent"].(float64) != 5 {
+		t.Errorf("Expected 5%% platform fee, got %v", resp["platform_fee_percent"])
+	}
+}
